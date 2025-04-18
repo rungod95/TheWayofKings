@@ -9,6 +9,10 @@ dependencies {
   api "com.github.tommyettinger:libgdx-utils:$utilsVersion"
   api "com.kotcrab.vis:vis-ui:$visUiVersion"
   api "io.github.libktx:ktx-tiled:$ktxVersion"
+  implementation "com.badlogicgames.gdx:gdx:$gdxVersion"
+  implementation "com.badlogicgames.gdx:gdx-backend-lwjgl3:$gdxVersion" // para desktop
+  implementation "com.badlogicgames.gdx:gdx-freetype:$gdxVersion"
+  implementation "com.badlogicgames.gdx:gdx-tools:$gdxVersion"
   annotationProcessor "org.projectlombok:lombok:$lombokVersion"
   compileOnly "org.projectlombok:lombok:$lombokVersion"
 

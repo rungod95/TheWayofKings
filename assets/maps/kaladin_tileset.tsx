@@ -1,0 +1,2 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<tileset version="1.4" tiledversion="1.9.2" name="KaladinTileset" tilewidth="16" tileheight="16" tilecount="85" columns="5"><image source="kaladin_tileset.png" width="80" height="272" /></tileset>
