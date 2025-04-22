@@ -141,7 +141,7 @@ public class Kaladin {
         final float width = DRAW_SIZE;
         final float height = DRAW_SIZE;
         final float FOOT_EPS = 1f;
-        final float HEAD_EPS = 0.5f;
+        final float HEAD_EPS = 0.05f;
         final int TILE = 16;
 
         // 2‑A Colisión horizontal
@@ -158,7 +158,10 @@ public class Kaladin {
             } else {
                 velocidadY = 0;
             }
-        } else { // CAYENDO
+
+
+
+    } else { // CAYENDO
             if (!collisionHelper.overlapsSolidDown(
                 x, posY + FOOT_EPS, DRAW_SIZE, DRAW_SIZE - FOOT_EPS)) {
                 y = posY;
