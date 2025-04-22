@@ -12,10 +12,14 @@ public class MapCollisionHelper {
         // capa «colisiones» con tiles type=solid o type=platform
         this.layer = (TiledMapTileLayer) map.getLayers().get("colisiones");
     }
+    // Solo bloquea plataformas (para detectar aterrizaje desde arriba)
+    public boolean overlapsOnlyPlatformDown(float x, float y, float w, float h) {
+        return overlapsTypes(x, y, w, h, "platform");
+    }
 
-    /** Sólo bloquea muros (type=solid). Para el head‑check. */
+
     public boolean overlapsSolidUp(float x, float y, float w, float h) {
-        return overlapsTypes(x, y, w, h, "solid");
+        return overlapsTypes(x, y, w, h, "solid", "platform");
     }
 
     /** Bloquea muros y plataformas (type=solid o type=platform). Para el feet‑check. */
