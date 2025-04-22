@@ -218,6 +218,11 @@ public class Kaladin {
         return vidas;
     }
 
+    public void curarVida() {
+        if (vidas < 3) vidas++;
+    }
+
+
     public void quitarVida() {
         if (damageCooldown > 0) return;   // aún invulnerable
         vidas--;
@@ -242,7 +247,9 @@ public class Kaladin {
         y = spawnY;
         velocidadY = 0;
         enElAire = false;
+        vidas = 3;
     }
+
 
 
     public void dispose() {
