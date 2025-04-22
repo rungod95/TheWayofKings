@@ -1,16 +1,20 @@
 package com.TheWayofKings.game;
 
+import com.TheWayofKings.managers.HazardManager;
 import com.TheWayofKings.characters.Kaladin;
+import com.TheWayofKings.managers.CheckpointManager;
+import com.TheWayofKings.managers.PlatformManager;
 import com.TheWayofKings.maps.MapCollisionHelper;
 import com.badlogic.gdx.ApplicationAdapter;
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
+import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.maps.MapLayer;
 import com.badlogic.gdx.maps.MapObject;
 import com.badlogic.gdx.maps.objects.RectangleMapObject;
 import com.badlogic.gdx.maps.tiled.TiledMap;
-import com.badlogic.gdx.maps.tiled.TiledMapTileLayer;
 import com.badlogic.gdx.maps.tiled.TmxMapLoader;
 import com.badlogic.gdx.maps.tiled.renderers.OrthogonalTiledMapRenderer;
 import com.badlogic.gdx.math.MathUtils;
@@ -22,62 +26,178 @@ import com.badlogic.gdx.math.Rectangle;
  * – Mantiene la cámara dentro de los límites del mapa.
  */
 public class MainGame extends ApplicationAdapter {
-    private static final int TILE_SIZE = 16; // tamaño de un tile en píxeles
 
-    private OrthographicCamera camera;
-    private TiledMap map;
-    private OrthogonalTiledMapRenderer renderer;
-    private Kaladin kaladin;
-    private MapCollisionHelper collisionHelper;
+    private static final int TILE_SIZE = 16;   // 16 px por tile
+    private static final int HEART_W   = 16;   // ancho corazón
+    private static final int HEART_H   = 16;
 
-    // ------------------------------------------------------------------------
-    // Ciclo de vida
-    // ------------------------------------------------------------------------
-    @Override
-    public void create() {
-        // 1. Cargar mapa y renderer
-        map = new TmxMapLoader().load("maps/mapa_base_ejemplo_tiles.tmx");
-        renderer = new OrthogonalTiledMapRenderer(map, 1f); // trabajamos en píxeles
+    private OrthographicCamera          camera;
+    private TiledMap                    map;
+    private OrthogonalTiledMapRenderer  renderer;
+    private Kaladin                     kaladin;
+    private MapCollisionHelper          collisionHelper;
+    private HazardManager               hazards;
+    private Texture                     heartTex;
+    private Texture                     platformTex;
+    private PlatformManager platformManager;
+    private CheckpointManager checkpoints;
+    private String[] niveles = {
+        "maps/mapa_nivel1.tmx",
+        "maps/mapa_nivel2.tmx"
+    };
+    private int nivelActual = 0;
 
-        // 2. Cámara con el mismo tamaño del viewport en píxeles
+    @Override public void create () {
+
+
+
         camera = new OrthographicCamera();
-        camera.setToOrtho(false, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+        camera.setToOrtho(false,
+                Gdx.graphics.getWidth(),
+                Gdx.graphics.getHeight());
 
-        // 3. Colisiones + personaje
+
+        cargarNivel(0);
+
         collisionHelper = new MapCollisionHelper(map);
-        kaladin = new Kaladin();
+
+        // Texturas
+        heartTex    = new Texture("ui/corazontex.png");
+
+
+        kaladin  = new Kaladin();
         kaladin.create(collisionHelper);
 
+        hazards  = new HazardManager(map, 64, 64);   // usa los rects
+        platformManager = new PlatformManager(map);
+
+        colocarKaladinEnSpawn();
+
+
+    }
+
+    private void cargarNivel(int idx) {
+        if (idx < 0 || idx >= niveles.length) return;
+        // libera mapa anterior
+        if (map != null) map.dispose();
+
+        // carga el TMX nuevo
+        map       = new TmxMapLoader().load(niveles[idx]);
+        renderer  = new OrthogonalTiledMapRenderer(map, 1f);
+
+        // rehace helper, checkpoints y hazards sobre el nuevo mapa
+        collisionHelper = new MapCollisionHelper(map);
+        checkpoints     = new CheckpointManager(map);
+        hazards         = new HazardManager(map, 64, 64);
+        platformManager = new PlatformManager(map);
+
+        //  vuelve a darle a Kaladin el helper y posición inicial
+        if (kaladin == null) {
+            kaladin = new Kaladin();
+            kaladin.create(collisionHelper);
+        } else {
+            kaladin.create(collisionHelper);   // reasigna colisión y resetea animaciones
+        }
         colocarKaladinEnSpawn();
     }
 
+
     @Override
-    public void render() {
-        float delta = Gdx.graphics.getDeltaTime();
-        kaladin.update(delta);
+    public void render () {
 
-        if (kaladin.isDead()) {
-            kaladin.reset();           // reaparece en el spawn
+        Gdx.gl.glClearColor(0f, 0f, 0f, 1f);
+        Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
+        float dt = Gdx.graphics.getDeltaTime();
+
+        platformManager.update(dt); // ← ¡ESTO FALTABA!
+
+        kaladin.setSobrePlataformaMovil(false);
+        for (PlatformManager.MovingPlatform plat : platformManager.getPlatforms()) {
+            if (plat.bounds.overlaps(kaladin.getFeetRectangle())) {
+                kaladin.setSobrePlataformaMovil(true);
+                break;
+            }
         }
+        handlePlatformCollision();
+        kaladin.update(dt);
+
+
+        hazards.update(kaladin);
+
+        // si toca checkpoint, avanza de nivel y sale del frame
+        if (checkpoints.reached(kaladin.getX(), kaladin.getY(), 64, 64)) {
+            nivelActual = (nivelActual + 1) % niveles.length;
+            cargarNivel(nivelActual);
+            return;
+        }
+
+        if (kaladin.isDead()) kaladin.reset();
 
         actualizarCamara();
         renderer.setView(camera);
 
-        renderizarCapasMapa();
+        // 2) Dibuja mapa y jugador
+        renderer.render();
+        SpriteBatch batch = (SpriteBatch)renderer.getBatch();
+        batch.begin();
+        platformManager.render(batch);
+        kaladin.render(batch);
+        batch.end();
 
-        // Dibujar a Kaladin sobre el mapa
-        renderer.getBatch().begin();
-        kaladin.render((SpriteBatch) renderer.getBatch());
-        renderer.getBatch().end();
+        // 3) Ahora dibuja el HUD de corazones (solo los que queden)
+        batch.begin();
+        float startX = camera.position.x - camera.viewportWidth/2 + 8;
+        float startY = camera.position.y + camera.viewportHeight/2 - 24;
+        for (int i = 0; i < kaladin.getVidas(); i++) {
+            batch.draw(heartTex,
+                    startX + i*(HEART_W+4),
+                    startY,
+                    HEART_W, HEART_H);
+        }
+        batch.end();
     }
 
-    @Override
-    public void dispose() {
+    private void handlePlatformCollision() {
+        Rectangle feet = kaladin.getFeetRectangle();
+        boolean colisionDetectada = false;
+
+        for (PlatformManager.MovingPlatform plat : platformManager.getPlatforms()) {
+            boolean cayendo = kaladin.getVelocityY() <= 0;
+            float margenLateral = 20f;
+            float margenVertical = 2f;
+
+            float feetX = kaladin.getX() + margenLateral;
+            float feetWidth = 64 - 2 * margenLateral;
+
+            boolean sobreX = feetX + feetWidth > plat.bounds.x && feetX < plat.bounds.x + plat.bounds.width;
+            boolean sobreY = Math.abs(kaladin.getY() - (plat.bounds.y + plat.bounds.height)) <= margenVertical;
+
+            if (cayendo && sobreX && sobreY) {
+                kaladin.land();
+                kaladin.setSobrePlataformaMovil(true);
+                kaladin.setPlataformaActual(plat);
+                colisionDetectada = true;
+                break;
+            }
+        }
+
+        if (!colisionDetectada) {
+            kaladin.setSobrePlataformaMovil(false);
+            kaladin.setPlataformaActual(null);
+        }
+    }
+
+
+    @Override public void dispose () {
         map.dispose();
         renderer.dispose();
         kaladin.dispose();
+        heartTex.dispose();
+        platformTex.dispose();
     }
+
+
 
 
     private void colocarKaladinEnSpawn() {
@@ -90,10 +210,11 @@ public class MainGame extends ApplicationAdapter {
         MapObject spawnObj = spawnLayer.getObjects().get("spawn");
         if (spawnObj == null) return;
 
-        // 3. Altura real del mapa en píxeles
-        TiledMapTileLayer anyTileLayer = (TiledMapTileLayer) map.getLayers().get(0);
-        int tileHeight   = anyTileLayer.getTileHeight();
-        int mapHeightPx  = map.getProperties().get("height", Integer.class) * tileHeight;
+
+        // Altura de tile: viene en las propiedades globales del mapa
+        int tileHeight = map.getProperties().get("tileheight", Integer.class);
+        int mapHeightPx = map.getProperties().get("height", Integer.class) * tileHeight;
+
 
 
         float spawnX, spawnY;
@@ -101,8 +222,8 @@ public class MainGame extends ApplicationAdapter {
         if (spawnObj instanceof RectangleMapObject) {
             Rectangle r = ((RectangleMapObject) spawnObj).getRectangle();
             spawnX = r.x;
-            spawnY = mapHeightPx - r.y - r.height;   // esquina inferior del rectángulo
-        } else {                                     // si fuera un punto
+            spawnY = mapHeightPx - r.y - r.height;
+        } else {
             float sx = spawnObj.getProperties().get("x", Float.class);
             float sy = spawnObj.getProperties().get("y", Float.class);
             spawnX = sx;
@@ -144,7 +265,7 @@ public class MainGame extends ApplicationAdapter {
     private void renderizarCapasMapa() {
         for (int i = 0; i < map.getLayers().getCount(); i++) {
             String name = map.getLayers().get(i).getName();
-            if (!"colisiones".equals(name) && !"peligros".equals(name)) {
+            if (!"colisiones".equals(name) ) {
                 renderer.render(new int[]{i});
             }
         }

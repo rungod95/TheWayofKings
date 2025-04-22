@@ -1,30 +1,48 @@
 package com.TheWayofKings.characters;
 
+import com.TheWayofKings.managers.PlatformManager;
 import com.TheWayofKings.maps.MapCollisionHelper;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
+import com.badlogic.gdx.audio.Sound;
 import com.badlogic.gdx.graphics.g2d.Animation;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
+import com.badlogic.gdx.math.Rectangle;
+import lombok.Setter;
+
+import static com.badlogic.gdx.graphics.Colors.reset;
 
 public class Kaladin {
 
 
-    private float x, y;
-    private float velocidad       = 100f;   // píxeles/seg
-    private float velocidadSalto  = 250f;
-    private float gravedad        = -800f;
-    private float velocidadY      = 0f;
+    @Setter
+    private float x, /**
+     * -- SETTER --
+     * Permite ajustar la posición vertical (para plataformas)
+     */
+        y;
+    private float velocidad = 100f;   // píxeles/seg
+    private float velocidadSalto = 250f;
+    private float gravedad = -800f;
+    private float velocidadY = 0f;
     private float spawnX, spawnY;
-    private boolean enElAire       = false;
+    private boolean enElAire = false;
     private boolean mirandoDerecha = true;
     private static final int MAX_SALTOS = 2;
     private int saltosRealizados = 0;
+    private int vidas = 3;
+    private float damageCooldown = 0f;
+    private static final float INVULN = 1f;
+    Sound hurtSnd;
+    private boolean sobrePlataformaMovil = false;
+    private boolean sobrePlataformaMovilAnterior = false;
 
 
 
     private KaladinAnimationHelper animHelper;
     private Animation<TextureRegion> animacionActual;
+    private PlatformManager.MovingPlatform plataformaActual = null;
     private float stateTime;
 
 
@@ -34,14 +52,17 @@ public class Kaladin {
     private static final float DRAW_SIZE = 64f;
 
 
-
-    /** Se llama una vez al iniciar el juego */
+    /**
+     * Se llama una vez al iniciar el juego
+     */
     public void create(MapCollisionHelper helper) {
         this.collisionHelper = helper;
 
-        animHelper      = new KaladinAnimationHelper();
+        animHelper = new KaladinAnimationHelper();
         animacionActual = animHelper.getIdleAnimation();
-        stateTime       = 0f;
+        stateTime = 0f;
+
+        hurtSnd = Gdx.audio.newSound(Gdx.files.internal("sfx/hurt.mp3"));
 
         // La posición inicial nos la dará MainGame vía setPosition()
     }
@@ -54,16 +75,17 @@ public class Kaladin {
         this.spawnY = y;
     }
 
-    /** Lógica de movimiento + animación */
+    /**
+     * Lógica de movimiento + animación
+     */
     public void update(float delta) {
 
         /* ========== 1. INPUT + FÍSICA BÁSICA ========================== */
 
         boolean moviendo = false;
         float nextX = x;
-        float nextY = y;
 
-        // 1‑A  Movimiento horizontal por teclado
+        // 1‑A Movimiento horizontal por teclado
         if (Gdx.input.isKeyPressed(Input.Keys.RIGHT)) {
             nextX += velocidad * delta;
             moviendo = true;
@@ -74,7 +96,7 @@ public class Kaladin {
             mirandoDerecha = false;
         }
 
-        // 1‑B  Salto (doble)
+        // 1‑B Salto (doble)
         if (Gdx.input.isKeyJustPressed(Input.Keys.SPACE) &&
             saltosRealizados < MAX_SALTOS) {
 
@@ -83,81 +105,91 @@ public class Kaladin {
             saltosRealizados++;
         }
 
-        /* --- SENSOR DE SUELO ----------------------------------------- */
+        // 1‑C Movimiento con plataforma móvil
+        if (plataformaActual != null) {
+            System.out.printf("Plataforma ΔY: %.5f | Kaladin Y: %.5f%n", plataformaActual.deltaY, y);
+            x += plataformaActual.deltaX;
+            y += plataformaActual.deltaY;
+        }
+
+        // 1‑D Sensor de suelo o plataforma móvil
+        if (sobrePlataformaMovil) {
+            enElAire = false;
+            velocidadY = 0;
+        }
+
         if (!enElAire) {
-            final float width  = DRAW_SIZE;
             final float FOOT_EPS = 1f;
-            // ¿sigue habiendo bloque 1 px bajo los pies?
-            boolean suelo = collisionHelper.overlapsSolid(
-                x,              y - FOOT_EPS,
-                width, FOOT_EPS);
+            boolean suelo = collisionHelper.overlapsSolidDown(
+                x, y - FOOT_EPS, DRAW_SIZE, FOOT_EPS
+            );
             if (!suelo) {
-                enElAire = true;         // ya no hay suelo → comienza la caída
-                velocidadY = 0;          // parte de reposo
+                enElAire = true;
+                velocidadY = 0f;
             }
         }
 
-
-
-        // 1‑C  Gravedad continua
-        if (enElAire) {                          // ← añade esta condición
+        // 1‑E Gravedad
+        if (enElAire && !sobrePlataformaMovil) {
             velocidadY += gravedad * delta;
         }
-        nextY += velocidadY * delta;
 
+        float posY = y + velocidadY * delta;
 
         /* ========== 2. COLISIONES CON CAJA COMPLETA =================== */
 
-        final float width  = DRAW_SIZE;
+        final float width = DRAW_SIZE;
         final float height = DRAW_SIZE;
-        final float FOOT_EPS = 1f;   // hueco bajo los pies para no pegarse
-        final float HEAD_EPS = 2f;   // hueco sobre la cabeza
-        final int   TILE     = 16;   // tamaño de tile de tu mapa
+        final float FOOT_EPS = 1f;
+        final float HEAD_EPS = 0.5f;
+        final int TILE = 16;
 
-        // 2‑A  Horizontal (prueba caja desplazada en X)
-        if (!collisionHelper.overlapsSolid(nextX, y + FOOT_EPS,
-            width, height - FOOT_EPS)) {
+        // 2‑A Colisión horizontal
+        if (!collisionHelper.overlapsSolidDown(
+            nextX, y + FOOT_EPS, width, height - FOOT_EPS)) {
             x = nextX;
         }
 
-        // 2‑B  Vertical (primero subida, después bajada)
-        if (velocidadY >= 0) {                       // subiendo
-            if (!collisionHelper.overlapsSolid(x, nextY,
-                width, height - HEAD_EPS)) {
-                y = nextY;
+        // 2‑B Colisión vertical
+        if (velocidadY >= 0) { // SUBIENDO
+            if (!collisionHelper.overlapsSolidUp(
+                x, posY, DRAW_SIZE, DRAW_SIZE - HEAD_EPS)) {
+                y = posY;
             } else {
-                velocidadY = 0;                     // golpea techo
+                velocidadY = 0;
             }
-        } else { // cayendo
-            if (!collisionHelper.overlapsSolid(x, nextY + FOOT_EPS,
-                width, height - FOOT_EPS)) {
-                y = nextY;
+        } else { // CAYENDO
+            if (!collisionHelper.overlapsSolidDown(
+                x, posY + FOOT_EPS, DRAW_SIZE, DRAW_SIZE - FOOT_EPS)) {
+                y = posY;
                 enElAire = true;
-            } else {                         // ← aquí aterriza
-                y = ((int)(nextY / TILE) + 1) * TILE;
+            } else {
+                y = ((int) (posY / TILE) + 1) * TILE;
                 velocidadY = 0;
                 enElAire = false;
-                saltosRealizados = 0;        // <<< reinicia contador
+                saltosRealizados = 0;
             }
         }
 
+        /* ========== 3. ANIMACIÓN ========================= */
 
-        /* ========== 3. SELECCIÓN DE ANIMACIÓN ========================= */
-        Animation<TextureRegion> anterior = animacionActual;   // ① guarda la actual
+        Animation<TextureRegion> anterior = animacionActual;
 
-        if (enElAire)          animacionActual = animHelper.getJumpAnimation();
-        else if (moviendo)     animacionActual = animHelper.getRunAnimation();
-        else                   animacionActual = animHelper.getIdleAnimation();
+        if (enElAire) animacionActual = animHelper.getJumpAnimation();
+        else if (moviendo) animacionActual = animHelper.getRunAnimation();
+        else animacionActual = animHelper.getIdleAnimation();
 
-        /* ② si ha cambiado, reinicia el reloj */
         if (animacionActual != anterior) stateTime = 0f;
+        stateTime += delta;
 
-        stateTime += delta;                                    // ③ sigue contando
-
+        if (damageCooldown > 0) damageCooldown -= delta;
     }
 
 
-    /** Dibuja el frame actual orientado hacia la dirección correcta */
+
+    /**
+     * Dibuja el frame actual orientado hacia la dirección correcta
+     */
     public void render(SpriteBatch batch) {
 
         TextureRegion frame;
@@ -168,8 +200,7 @@ public class Kaladin {
         }
 
 
-
-    // voltear según la dirección
+        // voltear según la dirección
         if (!mirandoDerecha && !frame.isFlipX()) {
             frame.flip(true, false);
         } else if (mirandoDerecha && frame.isFlipX()) {
@@ -178,7 +209,28 @@ public class Kaladin {
 
         batch.draw(frame, x, y, DRAW_SIZE, DRAW_SIZE);
     }
-    public boolean isDead() { return y < 0; }
+
+
+    public int getVidas() {
+        return vidas;
+    }
+
+    public void quitarVida() {
+        if (damageCooldown > 0) return;   // aún invulnerable
+        vidas--;
+        hurtSnd.play(0.7f);
+        System.out.println("¡Daño! Vidas restantes = " + vidas);   // ← debug
+        damageCooldown = INVULN;
+        if (vidas <= 0) {
+            vidas = 3;
+            reset();
+        }
+    }
+
+
+    public boolean isDead() {
+        return y < 0;
+    }
 
 
     /* ---------- NUEVO: respawn ---------- */
@@ -190,12 +242,52 @@ public class Kaladin {
     }
 
 
-
     public void dispose() {
         animHelper.dispose();
+        hurtSnd.dispose();
     }
 
     /* -------- getters para la cámara -------- */
-    public float getX() { return x; }
-    public float getY() { return y; }
+    public float getX() {
+        return x;
+    }
+
+    public float getY() {
+        return y;
+    }
+
+    /**
+     * Para que MainGame sepa si está cayendo
+     */
+    public float getVelocityY() {
+        return velocidadY;
+    }
+
+    /**
+     * Rectángulo de 1px de alto bajo los pies
+     */
+    public Rectangle getFeetRectangle() {
+        float margenLateral = 20f;
+        return new Rectangle(x + margenLateral, y, DRAW_SIZE - 2 * margenLateral, 1f);
+    }
+
+
+
+    /**
+     * Llamar cuando aterriza sobre plataforma móvil
+     */
+    public void land() {
+        enElAire = false;
+        velocidadY = 0f;
+        saltosRealizados = 0;
+    }
+    public void setSobrePlataformaMovil(boolean sobre) {
+        this.sobrePlataformaMovil = sobre;
+    }
+    public void setPlataformaActual(PlatformManager.MovingPlatform p) {
+        this.plataformaActual = p;
+    }
+
+
+
 }
