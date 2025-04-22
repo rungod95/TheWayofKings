@@ -4,9 +4,12 @@ import com.TheWayofKings.managers.HazardManager;
 import com.TheWayofKings.characters.Kaladin;
 import com.TheWayofKings.managers.CheckpointManager;
 import com.TheWayofKings.managers.PlatformManager;
+import com.TheWayofKings.managers.PotionManager;
 import com.TheWayofKings.maps.MapCollisionHelper;
 import com.badlogic.gdx.ApplicationAdapter;
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.audio.Music;
+import com.badlogic.gdx.audio.Sound;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
@@ -46,10 +49,18 @@ public class MainGame extends ApplicationAdapter {
         "maps/mapa_nivel2.tmx"
     };
     private int nivelActual = 0;
+    private PotionManager potionManager;
+    private Music musicaFondo;
+
+
 
     @Override public void create () {
 
 
+        musicaFondo = Gdx.audio.newMusic(Gdx.files.internal("sfx/music_fondo.mp3"));
+        musicaFondo.setLooping(true);
+        musicaFondo.setVolume(0.1f); // ajusta volumen si quieres
+        musicaFondo.play();
 
         camera = new OrthographicCamera();
         camera.setToOrtho(false,
@@ -65,11 +76,15 @@ public class MainGame extends ApplicationAdapter {
         heartTex    = new Texture("ui/corazontex.png");
 
 
+
+
+
         kaladin  = new Kaladin();
         kaladin.create(collisionHelper);
 
         hazards  = new HazardManager(map, 64, 64);   // usa los rects
         platformManager = new PlatformManager(map);
+
 
         colocarKaladinEnSpawn();
 
@@ -84,8 +99,12 @@ public class MainGame extends ApplicationAdapter {
         // carga el TMX nuevo
         map       = new TmxMapLoader().load(niveles[idx]);
         renderer  = new OrthogonalTiledMapRenderer(map, 1f);
+        //sonido
+        Sound sonidoPocion = Gdx.audio.newSound(Gdx.files.internal("sfx/heal.mp3"));
 
         // rehace helper, checkpoints y hazards sobre el nuevo mapa
+        potionManager = new PotionManager(map, sonidoPocion);
+
         collisionHelper = new MapCollisionHelper(map);
         checkpoints     = new CheckpointManager(map);
         hazards         = new HazardManager(map, 64, 64);
@@ -132,7 +151,14 @@ public class MainGame extends ApplicationAdapter {
             return;
         }
 
-        if (kaladin.isDead()) kaladin.reset();
+        if (kaladin.isDead()) {
+            nivelActual = 0;
+            cargarNivel(nivelActual);         // ← esto recarga mapa y llama a colocarKaladinEnSpawn()
+            kaladin.reset();                  // ← esto borra velocidad, estado, etc.
+            return;
+        }
+
+
 
         actualizarCamara();
         renderer.setView(camera);
@@ -140,8 +166,11 @@ public class MainGame extends ApplicationAdapter {
         // 2) Dibuja mapa y jugador
         renderer.render();
         SpriteBatch batch = (SpriteBatch)renderer.getBatch();
+        potionManager.update(kaladin);
+
         batch.begin();
         platformManager.render(batch);
+        potionManager.render(batch);
         kaladin.render(batch);
         batch.end();
 
@@ -195,6 +224,7 @@ public class MainGame extends ApplicationAdapter {
         kaladin.dispose();
         heartTex.dispose();
         platformTex.dispose();
+        musicaFondo.dispose();
     }
 
 
