@@ -1,10 +1,11 @@
 package com.TheWayofKings.screens;
 
+import com.TheWayofKings.util.GameScreen;
 import com.badlogic.gdx.Game;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.Screen;
-import com.badlogic.gdx.audio.Music;
+import com.badlogic.gdx.audio.Sound;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
@@ -14,20 +15,18 @@ import com.badlogic.gdx.graphics.g2d.GlyphLayout;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator;
 
-public class InstructionsScreen implements Screen {
+public class VictoryScreen implements Screen {
 
     private final Game game;
-    private final Music menuMusic;
-    private final float musicVolume;
     private OrthographicCamera camera;
     private SpriteBatch batch;
     private BitmapFont font;
     private Texture fondoMedieval, pergaminoOpciones;
+    private Sound victorySound;
+    private boolean sonidoReproducido = false;
 
-    public InstructionsScreen(Game game, Music menuMusic, float musicVolume) {
+    public VictoryScreen(Game game) {
         this.game = game;
-        this.menuMusic = menuMusic;
-        this.musicVolume = musicVolume;
     }
 
     @Override
@@ -41,16 +40,16 @@ public class InstructionsScreen implements Screen {
 
         FreeTypeFontGenerator generator = new FreeTypeFontGenerator(Gdx.files.internal("fonts/wisdom.ttf"));
         FreeTypeFontGenerator.FreeTypeFontParameter parameter = new FreeTypeFontGenerator.FreeTypeFontParameter();
-        parameter.size = 18;
-        parameter.color = Color.BLACK;
+        parameter.size = 20;
+        parameter.color = Color.BROWN;
         font = generator.generateFont(parameter);
         generator.dispose();
-
-        if (!menuMusic.isPlaying()) {
-            menuMusic.setVolume(musicVolume);
-            menuMusic.play();
-        }
+        // Sonido de muerte
+        victorySound = Gdx.audio.newSound(Gdx.files.internal("sfx/victory.mp3"));
+        victorySound.play(0.8f); // volumen entre 0 y 1
+        sonidoReproducido = true;
     }
+
 
     @Override
     public void render(float delta) {
@@ -60,27 +59,20 @@ public class InstructionsScreen implements Screen {
         camera.update();
         batch.setProjectionMatrix(camera.combined);
 
-        int pergaminoAncho = 780;
-        int pergaminoAlto = 300;
-        int xPergamino = (800 - pergaminoAncho) / 2; // 800 es el ancho de la pantalla
-
         batch.begin();
         batch.draw(fondoMedieval, 0, 0, 800, 480);
-        batch.draw(pergaminoOpciones, xPergamino, 90, pergaminoAncho, pergaminoAlto);
+        batch.draw(pergaminoOpciones, 100, 120, 600, 240);
 
-
-        drawCenteredText("INSTRUCCIONES", 360);
-        drawCenteredText("- Usa IZQ / DER para moverte, SPACE para saltar.", 320);
-        drawCenteredText("- Evita trampas y enemigos. Si caes, mueres.", 290);
-        drawCenteredText("- Toca pociones para recuperar vida.", 260);
-        drawCenteredText("- Llega al final del mapa para avanzar.", 230);
-        drawCenteredText("Pulsa ESC para volver al menu", 190);
+        drawCenteredText("HAS GANADO!", 320);
+        drawCenteredText("Pulsa R para volver a jugar", 270);
+        drawCenteredText("Pulsa M para volver al menu", 240);
 
         batch.end();
 
-        if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
-            game.setScreen(new MainMenuScreen(game, menuMusic, musicVolume));
-            dispose();
+        if (Gdx.input.isKeyJustPressed(Input.Keys.R)) {
+            game.setScreen(new GameScreen(game));
+        } else if (Gdx.input.isKeyJustPressed(Input.Keys.M)) {
+            game.setScreen(new MainMenuScreen(game));
         }
     }
 
@@ -101,5 +93,6 @@ public class InstructionsScreen implements Screen {
         batch.dispose();
         fondoMedieval.dispose();
         pergaminoOpciones.dispose();
+        if (sonidoReproducido) victorySound.dispose();
     }
 }

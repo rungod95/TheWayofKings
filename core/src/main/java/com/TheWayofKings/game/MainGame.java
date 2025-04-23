@@ -5,6 +5,7 @@ import com.TheWayofKings.characters.Kaladin;
 import com.TheWayofKings.maps.MapCollisionHelper;
 import com.TheWayofKings.screens.GameOverScreen;
 import com.TheWayofKings.screens.PauseMenuScreen;
+import com.TheWayofKings.screens.VictoryScreen;
 import com.TheWayofKings.util.GameScreen;
 import com.badlogic.gdx.ApplicationAdapter;
 import com.badlogic.gdx.Game;
@@ -168,12 +169,25 @@ public class MainGame extends ApplicationAdapter {
 
         hazards.update(kaladin);
 
-        // si toca checkpoint, avanza de nivel y sale del frame
+        MapObject finalCheckpoint = checkpoints.getFinalCheckpoint();
+        if (finalCheckpoint instanceof RectangleMapObject) {
+            Rectangle finalRect = ((RectangleMapObject) finalCheckpoint).getRectangle();
+            if (kaladin.getFeetRectangle().overlaps(finalRect)) {
+                musicaFondo.stop();
+                game.setScreen(new VictoryScreen(game));
+                return;
+            }
+        }
+
+// Checkpoint normal
         if (checkpoints.reached(kaladin.getX(), kaladin.getY(), 64, 64)) {
             nivelActual = (nivelActual + 1) % niveles.length;
             cargarNivel(nivelActual);
             return;
+
         }
+
+
 
         if (kaladin.isDead()) {
             musicaFondo.stop(); // ← detiene música del juego
