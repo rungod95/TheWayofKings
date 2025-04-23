@@ -93,7 +93,7 @@ public class MainMenuScreen implements Screen {
         int yTitulo = 330; // prueba con 330 o 350
 
         // Medidas del contenedor de opciones
-        int anchoOpciones = 800;
+        int anchoOpciones = 850;
         int altoOpciones = 350;
         int xOpciones = (screenW - anchoOpciones) / 1;
         int yOpciones = yTitulo - altoOpciones + 30;
@@ -105,12 +105,13 @@ public class MainMenuScreen implements Screen {
         batch.draw(pergaminoOpciones, xOpciones, yOpciones, anchoOpciones, altoOpciones);
 
         // Dibujar opciones dentro del pergamino
-        int espacio = 50;
+        int espacio = 40;
         int yBase = yOpciones + altoOpciones - espacio-40;
         drawCenteredText("Enter para comenzar la travesia", yBase);
         drawCenteredText("Dificultad: " + GameConfig.difficulty, yBase - espacio);
         drawCenteredText("Volumen: " + (int)(musicVolume * 100) + "%", yBase - 2 * espacio);
         drawCenteredText("Pulsa I para consultar el codice", yBase - 3 * espacio);
+        drawCenteredText("Pulsa S para ver la lista de puntuaciones", yBase - 4 * espacio);
 
         batch.end();
 
@@ -130,6 +131,10 @@ public class MainMenuScreen implements Screen {
             menuMusic.setVolume(musicVolume);
             prefs.putFloat("menuVolume", musicVolume).flush();
         }
+        if (Gdx.input.isKeyJustPressed(Input.Keys.S)) {
+            game.setScreen(new ScoreListScreen(game, menuMusic, musicVolume));
+        }
+
 
 
 
