@@ -3,14 +3,23 @@ package com.TheWayofKings.game;
 import com.TheWayofKings.managers.*;
 import com.TheWayofKings.characters.Kaladin;
 import com.TheWayofKings.maps.MapCollisionHelper;
+import com.TheWayofKings.screens.GameOverScreen;
+import com.TheWayofKings.screens.PauseMenuScreen;
+import com.TheWayofKings.util.GameScreen;
 import com.badlogic.gdx.ApplicationAdapter;
+import com.badlogic.gdx.Game;
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Input;
 import com.badlogic.gdx.audio.Music;
 import com.badlogic.gdx.audio.Sound;
+import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.BitmapFont;
+import com.badlogic.gdx.graphics.g2d.GlyphLayout;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator;
 import com.badlogic.gdx.maps.MapLayer;
 import com.badlogic.gdx.maps.MapObject;
 import com.badlogic.gdx.maps.objects.RectangleMapObject;
@@ -19,6 +28,8 @@ import com.badlogic.gdx.maps.tiled.TmxMapLoader;
 import com.badlogic.gdx.maps.tiled.renderers.OrthogonalTiledMapRenderer;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Rectangle;
+import lombok.Getter;
+import lombok.Setter;
 
 /**
  * Controlador principal del juego.
@@ -47,10 +58,17 @@ public class MainGame extends ApplicationAdapter {
     };
     private int nivelActual = 0;
     private PotionManager potionManager;
+    @Getter
     private Music musicaFondo;
     private Texture enemyTex;
     private EnemyManager enemyManager;
-
+    private float volumen = 0.1f;
+    @Setter
+    private Game game;
+    private GameScreen gameScreen;
+    private BitmapFont hudFont;
+    private float tiempoTotal = 0f;
+    private boolean pausaActiva = false; // para gestionar pausa desde fuera
 
 
 
@@ -59,7 +77,7 @@ public class MainGame extends ApplicationAdapter {
 
         musicaFondo = Gdx.audio.newMusic(Gdx.files.internal("sfx/music_fondo.mp3"));
         musicaFondo.setLooping(true);
-        musicaFondo.setVolume(0.1f); // ajusta volumen si quieres
+        musicaFondo.setVolume(volumen); // ajusta volumen si quieres
         musicaFondo.play();
 
         camera = new OrthographicCamera();
@@ -74,14 +92,13 @@ public class MainGame extends ApplicationAdapter {
 
         // Texturas
         heartTex    = new Texture("ui/corazontex.png");
+        FreeTypeFontGenerator generator = new FreeTypeFontGenerator(Gdx.files.internal("fonts/wisdom.ttf"));
+        FreeTypeFontGenerator.FreeTypeFontParameter parameter = new FreeTypeFontGenerator.FreeTypeFontParameter();
+        parameter.size = 16;
+        parameter.color = Color.WHITE;
+        hudFont = generator.generateFont(parameter);
+        generator.dispose();
 
-
-
-
-
-
-        kaladin  = new Kaladin();
-        kaladin.create(collisionHelper);
 
         hazards  = new HazardManager(map, 64, 64);   // usa los rects
         platformManager = new PlatformManager(map);
@@ -131,7 +148,12 @@ public class MainGame extends ApplicationAdapter {
 
         float dt = Gdx.graphics.getDeltaTime();
 
-        platformManager.update(dt); // ← ¡ESTO FALTABA!
+        if (!pausaActiva) {
+            tiempoTotal += dt;
+        }
+
+
+        platformManager.update(dt);
 
         kaladin.setSobrePlataformaMovil(false);
         for (PlatformManager.MovingPlatform plat : platformManager.getPlatforms()) {
@@ -154,13 +176,15 @@ public class MainGame extends ApplicationAdapter {
         }
 
         if (kaladin.isDead()) {
-            nivelActual = 0;
-            cargarNivel(nivelActual);         // ← esto recarga mapa y llama a colocarKaladinEnSpawn()
-            kaladin.reset();                  // ← esto borra velocidad, estado, etc.
+            musicaFondo.stop(); // ← detiene música del juego
+            game.setScreen(new GameOverScreen(game)); // ← Muestra pantalla de muerte
+            return;
+
+        }
+        if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
+            game.setScreen(new PauseMenuScreen(game, gameScreen)); // ← usamos la instancia existente
             return;
         }
-
-
 
         actualizarCamara();
         renderer.setView(camera);
@@ -169,6 +193,7 @@ public class MainGame extends ApplicationAdapter {
         renderer.render();
         SpriteBatch batch = (SpriteBatch)renderer.getBatch();
         potionManager.update(kaladin);
+
         enemyManager.update(dt, kaladin);
 
         batch.begin();
@@ -177,9 +202,10 @@ public class MainGame extends ApplicationAdapter {
         enemyManager.render(batch);
 
         kaladin.render(batch);
+
         batch.end();
 
-        // 3) Ahora dibuja el HUD de corazones (solo los que queden)
+        // 3) HUD de corazones (solo los que queden)
         batch.begin();
         float startX = camera.position.x - camera.viewportWidth/2 + 8;
         float startY = camera.position.y + camera.viewportHeight/2 - 24;
@@ -189,6 +215,21 @@ public class MainGame extends ApplicationAdapter {
                     startY,
                     HEART_W, HEART_H);
         }
+        String nivelStr = "Nivel: " + (nivelActual + 1);
+        int minutos = (int)(tiempoTotal / 60);
+        int segundos = (int)(tiempoTotal % 60);
+        String tiempoStr = String.format("Tiempo: %02d:%02d", minutos, segundos);
+
+        GlyphLayout layoutNivel = new GlyphLayout(hudFont, nivelStr);
+        float xNivel = camera.position.x - layoutNivel.width / 2;
+        float yNivel = camera.position.y + camera.viewportHeight / 2 - 8;
+
+        hudFont.draw(batch, layoutNivel, xNivel, yNivel);
+
+
+        hudFont.draw(batch, tiempoStr, camera.position.x + camera.viewportWidth / 2 - 130,
+            camera.position.y + camera.viewportHeight / 2 - 8);
+
         batch.end();
     }
 
@@ -294,15 +335,13 @@ public class MainGame extends ApplicationAdapter {
         camera.position.set(camX, camY, 0);
         camera.update();
     }
-    /**
-     * Renderiza todas las capas salvo «colisiones» y «peligros».
-     */
-    private void renderizarCapasMapa() {
-        for (int i = 0; i < map.getLayers().getCount(); i++) {
-            String name = map.getLayers().get(i).getName();
-            if (!"colisiones".equals(name) ) {
-                renderer.render(new int[]{i});
-            }
-        }
+
+    public void setVolume(float v) { this.volumen = v; }
+    public void setGameScreen(GameScreen gs) {
+        this.gameScreen = gs;
+    }
+
+    public void setPausaActiva(boolean pausaActiva) {
+        this.pausaActiva = pausaActiva;
     }
 }

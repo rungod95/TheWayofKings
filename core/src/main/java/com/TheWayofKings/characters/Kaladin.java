@@ -1,5 +1,6 @@
 package com.TheWayofKings.characters;
 
+import com.TheWayofKings.config.GameConfig;
 import com.TheWayofKings.managers.PlatformManager;
 import com.TheWayofKings.maps.MapCollisionHelper;
 import com.badlogic.gdx.Gdx;
@@ -31,7 +32,7 @@ public class Kaladin {
     private boolean mirandoDerecha = true;
     private static final int MAX_SALTOS = 2;
     private int saltosRealizados = 0;
-    private int vidas = 3;
+    private int vidas = GameConfig.getInitialLives();
     private float damageCooldown = 0f;
     private static final float INVULN = 1f;
     Sound hurtSnd;
@@ -223,18 +224,19 @@ public class Kaladin {
         if (vidas < 3) vidas++;
     }
 
-    public void quitarVida() {
+    public void quitarVida(int cantidad) {
         if (damageCooldown > 0) return;
 
-        vidas--;
+        vidas -= cantidad;
         hurtSnd.play(0.7f);
         System.out.println("¡Daño! Vidas restantes = " + vidas);
         damageCooldown = INVULN;
 
         if (vidas <= 0) {
-            muerto = true; // ← Marca como muerto total
+            muerto = true;
         }
     }
+
 
     public boolean isDead() {
         return muerto || y < 0;
