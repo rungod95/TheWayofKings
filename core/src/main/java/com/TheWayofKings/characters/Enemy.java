@@ -1,5 +1,6 @@
 package com.TheWayofKings.characters;
 
+import com.TheWayofKings.config.GameConfig;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.math.Rectangle;
@@ -8,7 +9,7 @@ public class Enemy {
     private float x, y, w, h;
     private float minX, maxX;
     private boolean movingRight = true;
-    private float speed = 60f;
+    private float speed = GameConfig.getEnemySpeed();
     private Texture tex;
 
     public Enemy(float x, float y, float w, float h, float minX, float maxX, Texture tex) {

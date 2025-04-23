@@ -1,6 +1,7 @@
 package com.TheWayofKings.managers;
 
 import com.TheWayofKings.characters.Kaladin;
+import com.TheWayofKings.config.GameConfig;
 import com.badlogic.gdx.maps.MapObject;
 import com.badlogic.gdx.maps.objects.RectangleMapObject;
 import com.badlogic.gdx.maps.tiled.TiledMap;
@@ -42,7 +43,7 @@ public class HazardManager {
 
         for (Rectangle r : hazardBoxes) {
             if (r.overlaps(feet)) {
-                k.quitarVida();
+                k.quitarVida(GameConfig.getEnemyDamage());
                 break;
             }
         }

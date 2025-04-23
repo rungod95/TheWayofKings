@@ -2,6 +2,7 @@ package com.TheWayofKings.managers;
 
 import com.TheWayofKings.characters.Enemy;
 import com.TheWayofKings.characters.Kaladin;
+import com.TheWayofKings.config.GameConfig;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.maps.MapLayer;
@@ -46,8 +47,10 @@ public class EnemyManager {
             Rectangle kaladinBox = new Rectangle(kaladin.getX(), kaladin.getY(), 64, 64);
 
             if (bounds.overlaps(kaladinBox)) {
-                kaladin.quitarVida();
+                kaladin.quitarVida(GameConfig.getEnemyDamage());
             }
+
+
         }
     }
 
