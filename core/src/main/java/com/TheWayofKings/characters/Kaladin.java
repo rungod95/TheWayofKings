@@ -37,6 +37,7 @@ public class Kaladin {
     Sound hurtSnd;
     private boolean sobrePlataformaMovil = false;
     private boolean sobrePlataformaMovilAnterior = false;
+    private boolean muerto = false;
 
 
 
@@ -222,24 +223,22 @@ public class Kaladin {
         if (vidas < 3) vidas++;
     }
 
-
     public void quitarVida() {
-        if (damageCooldown > 0) return;   // aún invulnerable
+        if (damageCooldown > 0) return;
+
         vidas--;
         hurtSnd.play(0.7f);
-        System.out.println("¡Daño! Vidas restantes = " + vidas);   // ← debug
+        System.out.println("¡Daño! Vidas restantes = " + vidas);
         damageCooldown = INVULN;
+
         if (vidas <= 0) {
-            vidas = 3;
-            reset();
+            muerto = true; // ← Marca como muerto total
         }
     }
 
-
     public boolean isDead() {
-        return y < 0;
+        return muerto || y < 0;
     }
-
 
     /* ---------- NUEVO: respawn ---------- */
     public void reset() {
@@ -247,8 +246,10 @@ public class Kaladin {
         y = spawnY;
         velocidadY = 0;
         enElAire = false;
+        muerto = false;
         vidas = 3;
     }
+
 
 
 

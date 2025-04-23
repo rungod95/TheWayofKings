@@ -1,10 +1,7 @@
 package com.TheWayofKings.game;
 
-import com.TheWayofKings.managers.HazardManager;
+import com.TheWayofKings.managers.*;
 import com.TheWayofKings.characters.Kaladin;
-import com.TheWayofKings.managers.CheckpointManager;
-import com.TheWayofKings.managers.PlatformManager;
-import com.TheWayofKings.managers.PotionManager;
 import com.TheWayofKings.maps.MapCollisionHelper;
 import com.badlogic.gdx.ApplicationAdapter;
 import com.badlogic.gdx.Gdx;
@@ -51,6 +48,9 @@ public class MainGame extends ApplicationAdapter {
     private int nivelActual = 0;
     private PotionManager potionManager;
     private Music musicaFondo;
+    private Texture enemyTex;
+    private EnemyManager enemyManager;
+
 
 
 
@@ -74,6 +74,7 @@ public class MainGame extends ApplicationAdapter {
 
         // Texturas
         heartTex    = new Texture("ui/corazontex.png");
+
 
 
 
@@ -104,7 +105,8 @@ public class MainGame extends ApplicationAdapter {
 
         // rehace helper, checkpoints y hazards sobre el nuevo mapa
         potionManager = new PotionManager(map, sonidoPocion);
-
+        enemyTex = new Texture("characters/enemy.png");
+        enemyManager = new EnemyManager(map, enemyTex);
         collisionHelper = new MapCollisionHelper(map);
         checkpoints     = new CheckpointManager(map);
         hazards         = new HazardManager(map, 64, 64);
@@ -167,10 +169,13 @@ public class MainGame extends ApplicationAdapter {
         renderer.render();
         SpriteBatch batch = (SpriteBatch)renderer.getBatch();
         potionManager.update(kaladin);
+        enemyManager.update(dt, kaladin);
 
         batch.begin();
         platformManager.render(batch);
         potionManager.render(batch);
+        enemyManager.render(batch);
+
         kaladin.render(batch);
         batch.end();
 
