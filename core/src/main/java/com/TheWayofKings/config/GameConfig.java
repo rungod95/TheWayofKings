@@ -11,9 +11,9 @@ public class GameConfig {
     public static int getInitialLives() {
         switch (difficulty) {
             case EASY:
-                return 8;
-            case NORMAL:
                 return 6;
+            case NORMAL:
+                return 4;
             case HARD:
                 return 3;
             default:
