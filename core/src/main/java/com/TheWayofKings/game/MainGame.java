@@ -66,9 +66,12 @@ public class MainGame extends ApplicationAdapter {
     private float volumen = 0.1f;
     @Setter
     private Game game;
+    @Setter
     private GameScreen gameScreen;
     private BitmapFont hudFont;
-    private float tiempoTotal = 0f;
+    @Getter
+    private static float tiempoTotal = 0f;
+    @Setter
     private boolean pausaActiva = false; // para gestionar pausa desde fuera
 
 
@@ -80,6 +83,8 @@ public class MainGame extends ApplicationAdapter {
         musicaFondo.setLooping(true);
         musicaFondo.setVolume(volumen); // ajusta volumen si quieres
         musicaFondo.play();
+        tiempoTotal = 0f;
+
 
         camera = new OrthographicCamera();
         camera.setToOrtho(false,
@@ -351,11 +356,5 @@ public class MainGame extends ApplicationAdapter {
     }
 
     public void setVolume(float v) { this.volumen = v; }
-    public void setGameScreen(GameScreen gs) {
-        this.gameScreen = gs;
-    }
 
-    public void setPausaActiva(boolean pausaActiva) {
-        this.pausaActiva = pausaActiva;
-    }
 }
