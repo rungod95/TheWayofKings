@@ -85,7 +85,7 @@ Este proyecto cumple con los requisitos establecidos para la 2ª evaluación de 
 
 ## 🗂️ Recursos adicionales
 
-- [Wiki del juego]((https://github.com/rungod95/TheWayofKings/wiki)) (Instrucciones y detalles)
+- [Wiki del juego](https://github.com/rungod95/TheWayofKings/wiki) (Instrucciones y detalles)
 - [Última release]() (Descarga .jar)
 - [Sistema de puntuaciones](docs/scores.json)
 
