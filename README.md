@@ -1,33 +1,94 @@
-# TheWayOfKings
+# ⚔️ Kaladin – The Way of the Kings 🌪️
 
-A [libGDX](https://libgdx.com/) project generated with [gdx-liftoff](https://github.com/libgdx/gdx-liftoff).
+Videojuego de plataformas 2D desarrollado con **libGDX** como Actividad de Aprendizaje de la 2ª Evaluación de la asignatura *Programación Multimedia y Dispositivos Móviles*.
 
-This project was generated with a template including simple application launchers and an `ApplicationAdapter` extension that draws libGDX logo.
+## 🎮 Instrucciones de juego
 
-## Platforms
+- **← / →** : Mover al personaje Kaladin  
+- **ESPACIO** : Saltar  
+- **ESC** : Pausar el juego  
+- **ENTER** : Confirmar selección en los menús  
+- **M** : Volver al menú principal desde pantallas de pausa o victoria  
+- **R** : Reiniciar nivel (en Game Over o Victoria)  
+- **I** : Acceder a las instrucciones desde el menú principal  
+- **+ / -** : Subir o bajar el volumen de la música  
 
-- `core`: Main module with the application logic shared by all platforms.
-- `lwjgl3`: Primary desktop platform using LWJGL3; was called 'desktop' in older docs.
+---
 
-## Gradle
+## 🧩 Características implementadas
 
-This project uses [Gradle](https://gradle.org/) to manage dependencies.
-The Gradle wrapper was included, so you can run Gradle tasks using `gradlew.bat` or `./gradlew` commands.
-Useful Gradle tasks and flags:
+- ✅ Menú principal con volumen y dificultad ajustables  
+- ✅ Instrucciones accesibles desde el menú  
+- ✅ Sistema de pausa completo  
+- ✅ Música de fondo y efectos personalizados  
+- ✅ Detección de trampas, plataformas móviles, enemigos y pociones  
+- ✅ Checkpoints intermedios y finales  
+- ✅ Registro de puntuaciones con nombre, tiempo y dificultad  
+- ✅ Visualización del Top 10 desde el menú principal  
+- ✅ Carga modular de niveles desde archivos `.tmx` sin tocar el código  
 
-- `--continue`: when using this flag, errors will not stop the tasks from running.
-- `--daemon`: thanks to this flag, Gradle daemon will be used to run chosen tasks.
-- `--offline`: when using this flag, cached dependency archives will be used.
-- `--refresh-dependencies`: this flag forces validation of all dependencies. Useful for snapshot versions.
-- `build`: builds sources and archives of every project.
-- `cleanEclipse`: removes Eclipse project data.
-- `cleanIdea`: removes IntelliJ project data.
-- `clean`: removes `build` folders, which store compiled classes and built archives.
-- `eclipse`: generates Eclipse project data.
-- `idea`: generates IntelliJ project data.
-- `lwjgl3:jar`: builds application's runnable jar, which can be found at `lwjgl3/build/libs`.
-- `lwjgl3:run`: starts the application.
-- `test`: runs unit tests (if any).
+---
 
-Note that most tasks that are not specific to a single project can be run with `name:` prefix, where the `name` should be replaced with the ID of a specific project.
-For example, `core:clean` removes `build` folder only from the `core` project.
+## 🔧 Tecnologías utilizadas
+
+- 🛠️ **Java 21**
+- 🎮 **libGDX**
+- 🗺️ **Tiled Map Editor**
+- 🔊 **GDX Audio**
+- 🔤 **FreeTypeFont** (fuentes personalizadas)
+
+---
+
+## 📁 Estructura del proyecto
+
+```
+📦 /core         → Código fuente del juego (lógica, personajes, pantallas)
+📦 /lwjgl3       → Launcher principal del juego
+📁 /assets       → Recursos: mapas, sonidos, sprites, fuentes
+📄 README.md     → Este archivo
+```
+
+---
+
+## 🏁 Cómo ejecutar
+
+1. Clona este repositorio.
+2. Abre el proyecto con IntelliJ IDEA (u otro IDE compatible con Gradle).
+3. Ejecuta el módulo `lwjgl3`.
+4. También puedes exportar el `.jar` de escritorio desde `lwjgl3/build/libs`.
+
+---
+
+## 📘 Evaluación y criterios
+
+Este proyecto cumple con los requisitos establecidos para la 2ª evaluación de PMDM:
+
+- ✔️ Gestión de assets, audio y tiles con libGDX  
+- ✔️ Integración de TiledMap para niveles modulares  
+- ✔️ Sistema de pausa y Game Over  
+- ✔️ Sonido y música configurables  
+- ✔️ Puntuaciones persistentes con nombre, tiempo y dificultad  
+- ✔️ Proyecto subido a GitHub con Wiki, Issues y Releases  
+- ✔️ README explicativo y organización en ramas  
+
+---
+
+
+
+## 📜 Créditos
+
+- 👨‍💻 **Desarrollador**: Javier Planas – 2º DAM – 2025  
+- 🎨 Assets: Recursos pixel art libres o diseñados para este juego  
+- 🔊 Sonidos: Librerías de uso libre y creación propia  
+
+---
+
+## 🗂️ Recursos adicionales
+
+- [Wiki del juego]((https://github.com/rungod95/TheWayofKings/wiki)) (Instrucciones y detalles)
+- [Última release]() (Descarga .jar)
+- [Sistema de puntuaciones](docs/scores.json)
+
+---
+
+¡Gracias por jugar a *Kaladin – The Way of the Kings*! 🌩️
